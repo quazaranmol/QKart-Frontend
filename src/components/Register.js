@@ -12,6 +12,7 @@ import { useHistory, Link } from "react-router-dom";
 
 const Register = () => {
   const { enqueueSnackbar } = useSnackbar();
+  const history = useHistory();
 
 
   // TODO: CRIO_TASK_MODULE_REGISTER - Implement the register function
@@ -44,6 +45,7 @@ const Register = () => {
         if(response.status === 201){
           // alert("Registered successfully");
           enqueueSnackbar("Registered successfully",{ variant: 'success' })
+          history.push("/login");
         }
       })
       .catch(function (error) {
@@ -164,9 +166,9 @@ const Register = () => {
            </Button>
           <p className="secondary-action">
             Already have an account?{" "}
-             <a className="link" href="#">
+             <Link to="/login" className="link">
               Login here
-             </a>
+             </Link>
           </p>
         </Stack>
       </Box>
