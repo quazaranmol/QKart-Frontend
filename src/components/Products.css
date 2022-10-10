@@ -1,6 +1,10 @@
 .search {
+  display:flex;
+  align-items: center;
+  justify-content: center;
   min-width: 24rem;
   position: relative;
+  align-items: center;
   left: 4rem;
 }
 

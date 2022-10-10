@@ -4,6 +4,7 @@ import {
   Grid,
   InputAdornment,
   TextField,
+  Typography
 } from "@mui/material";
 import { Box } from "@mui/system";
 import axios from "axios";
@@ -13,11 +14,13 @@ import { config } from "../App";
 import Footer from "./Footer";
 import Header from "./Header";
 import "./Products.css";
+import ProductCard from "./ProductCard";
+import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
 
 // Definition of Data Structures used
 /**
  * @typedef {Object} Product - Data on product available to buy
- * 
+ *
  * @property {string} name - The name or title of the product
  * @property {string} category - The category that the product belongs to
  * @property {number} cost - The price to buy the product
@@ -26,8 +29,12 @@ import "./Products.css";
  * @property {string} _id - Unique ID for the product
  */
 
-
 const Products = () => {
+  const { enqueueSnackbar } = useSnackbar();
+  const [products, setProducts] = useState();
+  const [searchValue, updateSearchValue] = useState("");
+  const [searchDataIsEmpty,updateSearchDataisEmpty] = useState(false);
+  const [timerID, setTimerID] = useState(null);
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Fetch products data and store it
   /**
@@ -67,6 +74,29 @@ const Products = () => {
    * }
    */
   const performAPICall = async () => {
+    try {
+      let response = {};
+      if (searchValue) {
+        response = await axios(
+          `${config.endpoint}/products/search?value=${searchValue}`
+        );
+      } else {
+        response = await axios(`${config.endpoint}/products`);
+      }
+      console.log(response);
+      updateSearchDataisEmpty(false);
+      setProducts(response.data);
+    } catch (error) {
+      console.log(error, products);
+      if (error.response?.status === 404) {
+        updateSearchDataisEmpty(true);
+      } else {
+        enqueueSnackbar(
+          "Something went wrong. Check that the backend is running and reachable.",
+          { variant: "error" }
+        );
+      }
+    }
   };
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Implement search logic
@@ -83,8 +113,6 @@ const Products = () => {
    * API endpoint - "GET /products/search?value=<search-query>"
    *
    */
-  const performSearch = async (text) => {
-  };
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Optimise API calls with debounce search implementation
   /**
@@ -98,23 +126,56 @@ const Products = () => {
    *    Timer id set for the previous debounce call
    *
    */
-  const debounceSearch = (event, debounceTimeout) => {
+  const debounceSearch = () => {
+    if(timerID){
+      clearTimeout(timerID);
+    }
+    const debounceTimeout = setTimeout(()=>{
+      performAPICall();
+    },500);
+    setTimerID(debounceTimeout)
   };
 
+  // const product = {
+  //   name: "Tan Leatherette Weekender Duffle",
+  //   category: "Fashion",
+  //   cost: 150,
+  //   rating: 4,
+  //   image:
+  //     "https://crio-directus-assets.s3.ap-south-1.amazonaws.com/ff071a1c-1099-48f9-9b03-f858ccc53832.png",
+  //   _id: "PmInA797xJhMIPti",
+  // };
 
+  useEffect(() => {
+    performAPICall();
+  }, []);
 
-
-
-
+  useEffect(() => {
+    debounceSearch();
+  }, [searchValue]);
 
   return (
     <div>
       <Header>
         {/* TODO: CRIO_TASK_MODULE_PRODUCTS - Display search bar in the header for Products page */}
-
+        <TextField
+          className="search search-desktop"
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Search color="primary" />
+              </InputAdornment>
+            ),
+          }}
+          placeholder="Search for items/categories"
+          value={searchValue}
+          onChange={(event)=>{updateSearchValue(event.target.value)}}
+          name="search"
+        />
       </Header>
 
       {/* Search view for mobiles */}
+
       <TextField
         className="search-mobile"
         size="small"
@@ -128,17 +189,33 @@ const Products = () => {
         }}
         placeholder="Search for items/categories"
         name="search"
+        value={searchValue}
+        onChange={(event)=>{updateSearchValue(event.target.value)}}
       />
-       <Grid container>
-         <Grid item className="product-grid">
-           <Box className="hero">
-             <p className="hero-heading">
-               India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
-               to your door step
-             </p>
-           </Box>
-         </Grid>
-       </Grid>
+      <Grid container>
+        <Grid key="hero" item xs={12} md={12} className="product-grid">
+          <Box className="hero">
+            <p className="hero-heading">
+              India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
+              to your door step
+            </p>
+          </Box>
+        </Grid>
+
+        {searchDataIsEmpty ? (<Typography className="loading"><SentimentVeryDissatisfiedIcon />No products found</Typography>):
+        (products ? (
+          products.map((product) => (
+            <Grid key={product._id} item xs={6} md={3}>
+              <ProductCard product={product} />
+            </Grid>
+          ))
+        ) : (
+          <div className="loading">
+            <CircularProgress color="inherit" />
+            <div>Loading Products</div>
+          </div>
+        ))}
+      </Grid>
       <Footer />
     </div>
   );

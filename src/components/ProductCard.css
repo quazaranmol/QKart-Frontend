@@ -10,6 +10,9 @@
 }
 
 .card-button {
+    background-color: #00a278;
+    width: 100%;
+    color: white;
     text-transform: none;
     font-weight: 600;
 }
