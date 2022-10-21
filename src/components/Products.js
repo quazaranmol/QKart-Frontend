@@ -4,7 +4,7 @@ import {
   Grid,
   InputAdornment,
   TextField,
-  Typography
+  Typography,
 } from "@mui/material";
 import { Box } from "@mui/system";
 import axios from "axios";
@@ -15,7 +15,10 @@ import Footer from "./Footer";
 import Header from "./Header";
 import "./Products.css";
 import ProductCard from "./ProductCard";
-import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
+import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
+import Cart from "./Cart.js";
+import { generateCartItemsFrom } from "./Cart.js";
+import { useHistory } from "react-router-dom";
 
 // Definition of Data Structures used
 /**
@@ -31,10 +34,13 @@ import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDiss
 
 const Products = () => {
   const { enqueueSnackbar } = useSnackbar();
-  const [products, setProducts] = useState();
+  const [products, setProducts] = useState([]);
   const [searchValue, updateSearchValue] = useState("");
-  const [searchDataIsEmpty,updateSearchDataisEmpty] = useState(false);
+  const [searchDataIsEmpty, updateSearchDataisEmpty] = useState(false);
   const [timerID, setTimerID] = useState(null);
+  const [cart, updateCart] = useState([]);
+  const history = useHistory();
+  let cartItemsVariable = [];
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Fetch products data and store it
   /**
@@ -83,11 +89,9 @@ const Products = () => {
       } else {
         response = await axios(`${config.endpoint}/products`);
       }
-      console.log(response);
       updateSearchDataisEmpty(false);
       setProducts(response.data);
     } catch (error) {
-      console.log(error, products);
       if (error.response?.status === 404) {
         updateSearchDataisEmpty(true);
       } else {
@@ -126,14 +130,33 @@ const Products = () => {
    *    Timer id set for the previous debounce call
    *
    */
-  const debounceSearch = () => {
-    if(timerID){
+  const debounceSearch = (event) => {
+    if (timerID) {
       clearTimeout(timerID);
     }
-    const debounceTimeout = setTimeout(()=>{
+    const debounceTimeout = setTimeout(() => {
       performAPICall();
-    },500);
-    setTimerID(debounceTimeout)
+    }, 500);
+    setTimerID(debounceTimeout);
+  };
+
+  const fetchCart = async () => {
+    try {
+      const response = await axios.get(`${config.endpoint}/cart`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      updateCart(response.data);
+    } catch (error) {
+      enqueueSnackbar(`Oops! ${error}`, { variant: "error" });
+    }
+
+  //   if(cart){
+  //   console.log("CARTVALUES");
+  //   cart.forEach((item) => {
+  //     console.log(`Name = ${item.name} ID= ${item._id} Quantity = ${item.qty}`);
+  //   });
+  //   console.log("CARTVALUES");
+  // }
   };
 
   // const product = {
@@ -146,8 +169,64 @@ const Products = () => {
   //   _id: "PmInA797xJhMIPti",
   // };
 
+  const addToCart = async (
+    passedFrom,
+    productId,
+    currentValue = 1,
+  ) => {
+    if (!localStorage.getItem("token")) {
+      enqueueSnackbar(
+        "You are not Logged in. Please Log in to add products to cart.",
+        { variant: "warning" }
+      );
+      history.push("/login");
+      return;
+    }
+    if (passedFrom === "productCard") {
+      if (
+        cartItemsVariable.find((cartItem) => {
+          return cartItem._id === productId;
+        })
+      ) {
+        enqueueSnackbar(
+          "Item already in cart. Use the cart sidebar to update quantity or remove item.",
+          { variant: "warning" }
+        );
+        return;
+      }
+    } 
+
+    try {
+      let response = await axios.post(
+        `${config.endpoint}/cart`,
+        { productId: productId, qty: currentValue },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      // fetchCart();
+      updateCart(response.data);
+      // console.log("UPDATED CART : " , response.data);
+    } catch (error) {
+      enqueueSnackbar(error, { variant: "error" });
+    }
+  };
+
+  if(products.length>0 && cart.length>0 ){
+    cartItemsVariable = generateCartItemsFrom(cart,products);
+    }
+
+  useEffect(() => {
+    if (localStorage.getItem("token") && !searchValue && products) fetchCart();
+  }, [products]);
+
   useEffect(() => {
     performAPICall();
+    // if(localStorage.getItem("token"))
+    //   fetchCart();
   }, []);
 
   useEffect(() => {
@@ -169,7 +248,7 @@ const Products = () => {
           }}
           placeholder="Search for items/categories"
           value={searchValue}
-          onChange={(event)=>{updateSearchValue(event.target.value)}}
+          onChange={(e)=>{updateSearchValue(e.target.value);}}
           name="search"
         />
       </Header>
@@ -190,31 +269,51 @@ const Products = () => {
         placeholder="Search for items/categories"
         name="search"
         value={searchValue}
-        onChange={(event)=>{updateSearchValue(event.target.value)}}
+        onChange={(e)=>{updateSearchValue(e.target.value);}}
       />
       <Grid container>
-        <Grid key="hero" item xs={12} md={12} className="product-grid">
-          <Box className="hero">
-            <p className="hero-heading">
-              India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
-              to your door step
-            </p>
-          </Box>
-        </Grid>
+        {/* {localStorage.getItem("token") !== null? <Grid item xs={12} md={8}> : <Grid item xs={12} md={12}> } */}
+        <Grid item xs={12} md={localStorage.getItem("token") ? 8 : 12}>
+          <Grid key="hero" item xs={12} md={12} className="product-grid">
+            <Box className="hero">
+              <p className="hero-heading">
+                India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
+                to your door step
+              </p>
+            </Box>
+          </Grid>
 
-        {searchDataIsEmpty ? (<Typography className="loading"><SentimentVeryDissatisfiedIcon />No products found</Typography>):
-        (products ? (
-          products.map((product) => (
-            <Grid key={product._id} item xs={6} md={3}>
-              <ProductCard product={product} />
-            </Grid>
-          ))
-        ) : (
-          <div className="loading">
-            <CircularProgress color="inherit" />
-            <div>Loading Products</div>
-          </div>
-        ))}
+          <Grid container item>
+            {searchDataIsEmpty ? (
+              <Typography className="loading">
+                <SentimentVeryDissatisfiedIcon />
+                No products found
+              </Typography>
+            ) : products.length!==0 ? (
+              products.map((product) => (
+                <Grid
+                  item
+                  className="product-grid"
+                  xs={6}
+                  md={3}
+                  key={product._id}
+                >
+                  <ProductCard product={product} handleAddToCart={addToCart} />
+                </Grid>
+              ))
+            ) : (
+              <Typography className="loading">
+                <CircularProgress color="inherit" />
+                <Typography>Loading Products</Typography>
+              </Typography>
+            )}
+          </Grid>
+        </Grid>
+        {localStorage.getItem("token") && (
+          <Grid item xs={12} md={4}>
+            <Cart items={cartItemsVariable} handleQuantity={addToCart} />
+          </Grid>
+        )}
       </Grid>
       <Footer />
     </div>

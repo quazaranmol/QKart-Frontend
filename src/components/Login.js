@@ -1,4 +1,4 @@
-import { Button, CircularProgress, Stack, TextField } from "@mui/material";
+import { Button, CircularProgress, Stack, TextField, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import axios from "axios";
 import { useSnackbar } from "notistack";
@@ -53,7 +53,7 @@ const Login = () => {
       let response = await axios.post(`${config.endpoint}/auth/login`, {username: formData.username, password:formData.password})
       if(response.status === 201){
         enqueueSnackbar("Logged in successfully",{ variant: 'success' })
-        console.log(response.data)
+        // console.log(response.data)
         persistLogin(response.data.token,response.data.username,response.data.balance)
         history.push("/");
       }
@@ -161,7 +161,7 @@ const Login = () => {
           variant="outlined"
            />
            <Button onClick={login} className="button" variant="contained">{formData.loggingIn && <CircularProgress color="inherit" />} LOGIN TO QKART</Button>
-           <p>Dont have an account? <Link to="/register" className="link">Register now</Link></p>
+           <Typography>Dont have an account? <Link to="/register" className="link">Register now</Link></Typography>
         </Stack>
       </Box>
       <Footer />

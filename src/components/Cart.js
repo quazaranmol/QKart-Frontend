@@ -47,7 +47,28 @@ import "./Cart.css";
  *    Array of objects with complete data on products in cart
  *
  */
-export const generateCartItemsFrom = (cartData, productsData) => {
+export const generateCartItemsFrom = (cartData=[], productsData=[]) => {
+  // console.log("Cart",cartData);
+  // console.log("products",productsData);
+  // const cartItemDetails = productsData.filter((product)=>{
+  //   return cartData.find((dataValue)=>{
+  //     return product._id===dataValue.productId
+  //   })
+  // })
+  const cartItemDetails = [];
+  productsData.forEach((product)=>{
+    cartData.forEach((cartItem)=>{
+      if(product._id===cartItem.productId){
+        cartItemDetails.push({...product , qty:cartItem.qty})
+      }
+    })
+  })
+  // cartData.forEach((item,index)=>{
+  //   cartItemDetails[index].qty = item.qty;
+  //   // console.log("This is updater function",item.productId,item.qty)
+  // })
+  // console.log("cartDetails",cartItemDetails);
+  return cartItemDetails;
 };
 
 /**
@@ -61,6 +82,12 @@ export const generateCartItemsFrom = (cartData, productsData) => {
  *
  */
 export const getTotalCartValue = (items = []) => {
+  if(items.length === 0) return 0;
+  let totalCartValue=0;
+  items.forEach((item)=>{
+    totalCartValue += item.cost*item.qty;
+  })
+  return totalCartValue;
 };
 
 
@@ -78,20 +105,72 @@ export const getTotalCartValue = (items = []) => {
  * 
  * 
  */
+
+const CartItem = ({item, handleChange})=>{
+  // console.log(handleChange);
+  return(
+    <Box display="flex" alignItems="flex-start" padding="1rem">
+    <Box className="image-container">
+        <img
+            // Add product image
+            src={item.image}
+            // Add product name as alt eext
+            alt={item.name}
+            width="100%"
+            height="100%"
+        />
+    </Box>
+    <Box
+        display="flex"
+        flexDirection="column"
+        justifyContent="space-between"
+        height="6rem"
+        paddingX="1rem"
+    >
+        <div>{item.name}</div>
+        <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+        >
+        <ItemQuantity
+        // Add required props by checking implementation
+        handleQuantity={handleChange}
+        value={item}
+        />
+        <Box padding="0.5rem" fontWeight="700">
+            ${item.cost}
+        </Box>
+        </Box>
+    </Box>
+</Box>
+  )
+}
+
 const ItemQuantity = ({
   value,
-  handleAdd,
-  handleDelete,
+  handleQuantity
 }) => {
+
   return (
     <Stack direction="row" alignItems="center">
-      <IconButton size="small" color="primary" onClick={handleDelete}>
+      <IconButton size="small" color="primary" onClick={(event)=>{handleQuantity(
+        "-",
+        value._id,
+        value.qty-1
+      )}}>
         <RemoveOutlined />
       </IconButton>
       <Box padding="0.5rem" data-testid="item-qty">
-        {value}
+        {value.qty}
       </Box>
-      <IconButton size="small" color="primary" onClick={handleAdd}>
+      <IconButton size="small" color="primary" onClick={(event)=>{
+        // console.log("This is element","name=",value.name,"id=",value._id,"qty=",value.qty)
+        handleQuantity(
+          "+",
+          value._id,
+          value.qty+1
+        )}} >
         <AddOutlined />
       </IconButton>
     </Stack>
@@ -117,7 +196,8 @@ const Cart = ({
   items = [],
   handleQuantity,
 }) => {
-
+  // console.log(handleQuantity)
+  const history = useHistory();
   if (!items.length) {
     return (
       <Box className="cart empty">
@@ -133,6 +213,9 @@ const Cart = ({
     <>
       <Box className="cart">
         {/* TODO: CRIO_TASK_MODULE_CART - Display view for each cart item with non-zero quantity */}
+
+        {items.map((item)=><CartItem item={item} key={item._id} handleChange={handleQuantity} />)}
+
         <Box
           padding="1rem"
           display="flex"
@@ -159,9 +242,11 @@ const Cart = ({
             variant="contained"
             startIcon={<ShoppingCart />}
             className="checkout-btn"
+            onClick={()=>history.push("/checkout")}
           >
             Checkout
           </Button>
+          {/* <Button value="hello" onClick={handleQuantity} >TEST</Button> */}
         </Box>
       </Box>
     </>
