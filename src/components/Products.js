@@ -142,9 +142,11 @@ const Products = () => {
 
   const fetchCart = async () => {
     try {
-      const response = await axios.get(`${config.endpoint}/cart`, {
+      const response = await axios.get(`${config.endpoint}/cart`, 
+      {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
+      }
+      );
       updateCart(response.data);
     } catch (error) {
       enqueueSnackbar(`Oops! ${error}`, { variant: "error" });
