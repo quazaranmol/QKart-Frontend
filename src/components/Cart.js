@@ -4,7 +4,7 @@ import {
   ShoppingCart,
   ShoppingCartOutlined,
 } from "@mui/icons-material";
-import { Button, IconButton, Stack } from "@mui/material";
+import { Button, IconButton, Stack, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import React from "react";
 import { useHistory } from "react-router-dom";
@@ -90,7 +90,58 @@ export const getTotalCartValue = (items = []) => {
   return totalCartValue;
 };
 
+// TODO: CRIO_TASK_MODULE_CHECKOUT - Implement function to return total cart quantity
+/**
+ * Return the sum of quantities of all products added to the cart
+ *
+ * @param { Array.<CartItem> } items
+ *    Array of objects with complete data on products in cart
+ *
+ * @returns { Number }
+ *    Total quantity of products added to the cart
+ *
+ */
 
+
+const OrderDetails =({items})=>{
+  const {products, subtotal, shippingCharges, total} = getTotalItems(items);
+  return(
+  <>
+  <Stack direction="column" alignItems="left">
+    <Typography variant="h6" sx={{ fontWeight: 'bold', m: 1  }} >Order Details</Typography>
+      <Stack direction="row" justifyContent="space-between" sx={{ m: 1  }}>        
+        <Typography variant="div" alignItems="left">Products</Typography>
+        <Typography variant="div" alignItems="right">{products}</Typography>
+      </Stack>
+      <Stack direction="row" justifyContent="space-between" sx={{ m: 1  }}>        
+        <Typography variant="div" alignItems="left">Subtotal</Typography>
+        <Typography variant="div" alignItems="right">${subtotal}</Typography>
+      </Stack>
+      <Stack direction="row" justifyContent="space-between" sx={{ m: 1  }} >        
+        <Typography variant="div" alignItems="left">Shipping Charges</Typography>
+        <Typography variant="div" alignItems="right">${shippingCharges}</Typography>
+      </Stack>
+      <Stack direction="row" justifyContent="space-between" sx={{ fontWeight: 'bold', m:1 }}>        
+        <Typography variant="div" alignItems="left">Total</Typography>
+        <Typography variant="div" alignItems="right">${total}</Typography>
+      </Stack>
+  </Stack>
+  </>
+  )
+}
+
+
+export const getTotalItems = (items = []) => {
+  const totalValues = {
+    products: items.length,
+    subtotal: getTotalCartValue(items),
+    shippingCharges:0
+  }
+  totalValues.total = totalValues.subtotal + totalValues.shippingCharges;
+  return totalValues;
+};
+
+// TODO: CRIO_TASK_MODULE_CHECKOUT - Add static quantity view for Checkout page cart
 /**
  * Component to display the current quantity for a product and + and - buttons to update product quantity on cart
  * 
@@ -106,7 +157,7 @@ export const getTotalCartValue = (items = []) => {
  * 
  */
 
-const CartItem = ({item, handleChange})=>{
+const CartItem = ({item, handleChange, isReadOnly})=>{
   // console.log(handleChange);
   return(
     <Box display="flex" alignItems="flex-start" padding="1rem">
@@ -137,6 +188,7 @@ const CartItem = ({item, handleChange})=>{
         // Add required props by checking implementation
         handleQuantity={handleChange}
         value={item}
+        isReadOnly={isReadOnly}
         />
         <Box padding="0.5rem" fontWeight="700">
             ${item.cost}
@@ -149,11 +201,17 @@ const CartItem = ({item, handleChange})=>{
 
 const ItemQuantity = ({
   value,
-  handleQuantity
+  handleQuantity,
+  isReadOnly = false,
 }) => {
-
   return (
     <Stack direction="row" alignItems="center">
+      {isReadOnly? (
+        <Box padding="0.5rem" data-testid="item-qty">
+        Qty: {value.qty}
+      </Box>
+      ):(
+        <>
       <IconButton size="small" color="primary" onClick={(event)=>{handleQuantity(
         "-",
         value._id,
@@ -173,6 +231,9 @@ const ItemQuantity = ({
         )}} >
         <AddOutlined />
       </IconButton>
+      </>
+      )
+      }
     </Stack>
   );
 };
@@ -189,15 +250,39 @@ const ItemQuantity = ({
  * @param {Function} handleDelete
  *    Current quantity of product in cart
  * 
+ * @param {Boolean} isReadOnly
+ *    If product quantity on cart is to be displayed as read only without the + - options to change quantity
  * 
  */
+
+
+const Checkout = ()=>{
+  const history = useHistory();
+
+  return (
+    <Box display="flex" justifyContent="flex-end" className="cart-footer">
+          <Button
+            color="primary"
+            variant="contained"
+            startIcon={<ShoppingCart />}
+            className="checkout-btn"
+            onClick={()=>history.push("/checkout")}
+          >
+            Checkout
+          </Button>
+          {/* <Button value="hello" onClick={handleQuantity} >TEST</Button> */}
+        </Box>
+  )
+}
+
+
 const Cart = ({
   products,
   items = [],
   handleQuantity,
+  isReadOnly
 }) => {
   // console.log(handleQuantity)
-  const history = useHistory();
   if (!items.length) {
     return (
       <Box className="cart empty">
@@ -214,7 +299,7 @@ const Cart = ({
       <Box className="cart">
         {/* TODO: CRIO_TASK_MODULE_CART - Display view for each cart item with non-zero quantity */}
 
-        {items.map((item)=><CartItem item={item} key={item._id} handleChange={handleQuantity} />)}
+        {items.map((item)=><CartItem isReadOnly={isReadOnly} item={item} key={item._id} handleChange={handleQuantity} />)}
 
         <Box
           padding="1rem"
@@ -235,20 +320,8 @@ const Cart = ({
             ${getTotalCartValue(items)}
           </Box>
         </Box>
-
-        <Box display="flex" justifyContent="flex-end" className="cart-footer">
-          <Button
-            color="primary"
-            variant="contained"
-            startIcon={<ShoppingCart />}
-            className="checkout-btn"
-            onClick={()=>history.push("/checkout")}
-          >
-            Checkout
-          </Button>
-          {/* <Button value="hello" onClick={handleQuantity} >TEST</Button> */}
-        </Box>
-      </Box>
+        {isReadOnly? <OrderDetails items={items} /> : <Checkout />}
+      </Box> 
     </>
   );
 };

@@ -117,8 +117,9 @@ const Products = () => {
    * API endpoint - "GET /products/search?value=<search-query>"
    *
    */
+  const performSearch = async (text) => {
+  };
 
-  // TODO: CRIO_TASK_MODULE_PRODUCTS - Optimise API calls with debounce search implementation
   /**
    * Definition for debounce handler
    * With debounce, this is the function to be called whenever the user types text in the searchbar field
